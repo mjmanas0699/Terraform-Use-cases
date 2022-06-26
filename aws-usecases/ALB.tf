@@ -5,9 +5,9 @@ resource "aws_instance" "app_server" {
   user_data = <<EOF
 #!/bin/bash
 sudo -s
-apt install nginx
-echo $(curl http://169.254.169.254/latest/meta-data/local-ipv4) > /var/www/html/index.html
-systemctl restart nginx
+sudo apt install nginx -y
+# echo $(curl http://169.254.169.254/latest/meta-data/local-ipv4) > /var/www/html/index.html
+# systemctl restart nginx
 EOF
 
   tags = {
