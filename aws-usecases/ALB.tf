@@ -1,4 +1,5 @@
 resource "aws_instance" "app_server" {
+  count = 2
   ami           = "ami-068257025f72f470d"
   instance_type = "t2.micro"
   key_name = "test"
@@ -11,6 +12,6 @@ sudo systemctl restart nginx
 EOF
 
   tags = {
-    Name = "Terraform"
+    Name = "Terraform-${count.index}"
   }
 }
