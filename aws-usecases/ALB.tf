@@ -15,3 +15,15 @@ EOF
     Name = "Terraform"
   }
 }
+resource "aws_lb_target_group" "server" {
+  name     = "example-lb-tg"
+  port     = 80
+  protocol = "HTTP"
+}
+
+resource "aws_lb_target_group_attachment" "test" {
+  target_group_arn = aws_lb_target_group.server.arn
+  target_id        = aws_instance.app_server.id
+  port             = 80
+  depends_on       = [aws_lb_target_group.server]
+}
