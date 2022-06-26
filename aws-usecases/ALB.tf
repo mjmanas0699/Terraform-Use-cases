@@ -1,12 +1,13 @@
 resource "aws_instance" "app_server" {
-  ami           = "ami-08df646e18b182346"
+  ami           = " ami-068257025f72f470d"
   instance_type = "t2.micro"
   user_data = <<EOF
-  #!/bin/bash
-  sudo amazon-linux-extras install nginx1 -y
-  echo $(curl http://169.254.169.254/latest/meta-data/local-ipv4) > /usr/share/nginx/html/index.html
-  sudo systemctl start nginx
-  EOF
+#!/bin/bash
+sudo -s
+apt install nginx
+echo $(curl http://169.254.169.254/latest/meta-data/local-ipv4) > /var/www/html/index.html
+systemctl restart nginx
+EOF
 
   tags = {
     Name = "Terraform"
