@@ -19,6 +19,7 @@ resource "aws_lb_target_group" "server" {
   name     = "example-lb-tg"
   port     = 80
   protocol = "HTTP"
+  vpc_id   = "vpc-0f860e2d1cb397afb"
 }
 
 resource "aws_lb_target_group_attachment" "test" {
