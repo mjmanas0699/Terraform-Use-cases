@@ -49,11 +49,11 @@ resource "aws_eks_node_group" "cluster" {
     max_size     = 2
     min_size     = 1
   }
-  # scaling_config {
-  #   taint {
-  #     key    =  "key1"
-  #     value  =  "value"
-  #     effect = "NO_SCHEDULE"
-  #   }
-  # }
+}
+
+resource "aws_iam_openid_connect_provider" "cluster" {
+  client_id_list  = ["sts.amazonaws.com"]
+  thumbprint_list = []
+  url             = aws_eks_cluster.cluster.identity.0.oidc.0.issuer
+  depends_on        =[aws_eks_cluster.cluster]
 }
