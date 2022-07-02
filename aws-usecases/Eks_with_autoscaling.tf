@@ -30,7 +30,7 @@ resource "aws_eks_addon" "kube_proxy" {
   addon_name        = "kube-proxy"
   depends_on        =[aws_eks_cluster.cluster]
 }
-resource "aws_eks_addon" "kube_proxy" {
+resource "aws_eks_addon" "coredns" {
   cluster_name      = aws_eks_cluster.cluster.name
   addon_name        = "coredns"
   depends_on        =[aws_eks_cluster.cluster]
