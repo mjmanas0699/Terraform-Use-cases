@@ -6,12 +6,6 @@ resource "aws_eks_cluster" "cluster" {
     subnet_ids = ["subnet-02b3dd105b1fb0e33","subnet-0fff2c4a5a7501ba8","subnet-0b31198f213e44561"]
   }
 
-#   # Ensure that IAM Role permissions are created before and deleted after EKS Cluster handling.
-#   # Otherwise, EKS will not be able to properly delete EKS managed EC2 infrastructure such as Security Groups.
-#   depends_on = [
-#     aws_iam_role_policy_attachment.example-AmazonEKSClusterPolicy,
-#     aws_iam_role_policy_attachment.example-AmazonEKSVPCResourceController,
-#   ]
     kubernetes_network_config {
         service_ipv4_cidr ="192.168.1.0/24"
     }
@@ -35,4 +29,31 @@ resource "aws_eks_addon" "kube_proxy" {
   cluster_name      = aws_eks_cluster.cluster.name
   addon_name        = "kube-proxy"
   depends_on        =[aws_eks_cluster.cluster]
+}
+resource "aws_eks_addon" "kube_proxy" {
+  cluster_name      = aws_eks_cluster.cluster.name
+  addon_name        = "coredns"
+  depends_on        =[aws_eks_cluster.cluster]
+}
+
+resource "aws_eks_node_group" "cluster" {
+  cluster_name    = aws_eks_cluster.cluster.name
+  node_group_name = "Autoscaler-ng"
+  node_role_arn   = "arn:aws:iam::376604405359:role/AmazonEKSNodeRole"
+  subnet_ids      = ["subnet-02b3dd105b1fb0e33","subnet-0fff2c4a5a7501ba8","subnet-0b31198f213e44561"]
+  disk_size       = 10
+  instance_types  = ["t3.medium"]
+
+  scaling_config {
+    desired_size = 1
+    max_size     = 2
+    min_size     = 1
+  }
+  # scaling_config {
+  #   taint {
+  #     key    =  "key1"
+  #     value  =  "value"
+  #     effect = "NO_SCHEDULE"
+  #   }
+  # }
 }
