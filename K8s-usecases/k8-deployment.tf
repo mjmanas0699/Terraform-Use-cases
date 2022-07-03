@@ -1,5 +1,3 @@
-# Access Key ID: AKIAVPL27FZXW2CCGVMZ
-# Secret Access Key: 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
 terraform {
   required_providers {
     kubernetes = {
