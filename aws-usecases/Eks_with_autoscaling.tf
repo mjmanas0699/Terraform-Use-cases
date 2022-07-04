@@ -33,7 +33,7 @@ resource "aws_eks_addon" "kube_proxy" {
 resource "aws_eks_addon" "coredns" {
   cluster_name      = aws_eks_cluster.cluster.name
   addon_name        = "coredns"
-  addon_version     = "v1.8.7-eksbuild.1"
+  addon_version     = "v1.8.4-eksbuild.1"
   resolve_conflicts = "OVERWRITE"
   depends_on        =[aws_eks_cluster.cluster]
 }
