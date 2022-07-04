@@ -1,3 +1,5 @@
+#Cluster Creation
+
 resource "aws_eks_cluster" "cluster" {
   name     = "Autoscaler"
   role_arn = "arn:aws:iam::376604405359:role/eksClusterRole"
@@ -11,33 +13,7 @@ resource "aws_eks_cluster" "cluster" {
     }
 }
 
-output "endpoint" {
-  value = aws_eks_cluster.cluster.endpoint
-}
-
-output "kubeconfig-certificate-authority-data" {
-  value = aws_eks_cluster.cluster.certificate_authority[0].data
-}
-
-resource "aws_eks_addon" "vpc_cni" {
-  cluster_name      = aws_eks_cluster.cluster.name
-  addon_name        = "vpc-cni"
-  depends_on        =[aws_eks_cluster.cluster]
-}
-
-resource "aws_eks_addon" "kube_proxy" {
-  cluster_name      = aws_eks_cluster.cluster.name
-  addon_name        = "kube-proxy"
-  depends_on        =[aws_eks_cluster.cluster]
-}
-resource "aws_eks_addon" "coredns" {
-  cluster_name      = aws_eks_cluster.cluster.name
-  addon_name        = "coredns"
-  addon_version     = "v1.8.4-eksbuild.1"
-  resolve_conflicts = "OVERWRITE"
-  depends_on        =[aws_eks_cluster.cluster]
-}
-
+# NODE GROUP
 resource "aws_eks_node_group" "cluster" {
   cluster_name    = aws_eks_cluster.cluster.name
   node_group_name = "Autoscaler-ng"
@@ -51,43 +27,26 @@ resource "aws_eks_node_group" "cluster" {
     max_size     = 2
     min_size     = 1
   }
+  depends_on     = [aws_eks_cluster.cluster]
 }
 
-resource "aws_iam_openid_connect_provider" "cluster" {
-  client_id_list  = ["sts.amazonaws.com"]
-  thumbprint_list = []
-  url             = aws_eks_cluster.cluster.identity.0.oidc.0.issuer
+# Addons
+variable "addons" {
+  type    = list
+  default = ["vpc-cni", "kube-proxy", "coredns"]
 }
-
-resource "aws_iam_role" "role" {
-  name = "AmazonEKSClusterAutoscalerRole"
-
-  assume_role_policy = jsonencode(
-    {
-    "Version": "2012-10-17",
-    "Statement": [
-      {
-        "Effect": "Allow",
-        "Principal": {
-          "Federated": "${aws_iam_openid_connect_provider.cluster.arn}"
-        },
-        "Action": "sts:AssumeRoleWithWebIdentity",
-        "Condition": {
-          "StringEquals": {
-            "${aws_iam_openid_connect_provider.cluster.url}:sub": "system:serviceaccount:kube-system:cluster-autoscaler"
-          }
-        }
-      }
-    ]
-  }
-  )
+resource "aws_eks_addon" "addons" {
+  cluster_name      = aws_eks_cluster.cluster.name
+  for_each          = toset(var.addons)
+  addon_name        = each.value
+  depends_on        = [aws_eks_cluster.cluster]
 }
-
+#IAM Roles,Policy & OIDC
 
 resource "aws_iam_policy" "policy" {
   name        = "AmazonEKSClusterAutoscalerPolicy"
   description = "Autoscaling Policy"
-
+  depends_on  = [aws_eks_node_group.cluster]
   # Terraform's "jsonencode" function converts a
   # Terraform expression result to valid JSON syntax.
   policy = jsonencode(
@@ -125,7 +84,42 @@ resource "aws_iam_policy" "policy" {
   )
 }
 
+variable "oidc_thumbprint_list" {
+  type    = string
+}
+resource "aws_iam_openid_connect_provider" "cluster" {
+  client_id_list  = ["sts.amazonaws.com"]
+  thumbprint_list = [var.oidc_thumbprint_list]                    #https://github.com/hashicorp/terraform-provider-aws/issues/10104
+  url             = aws_eks_cluster.cluster.identity.0.oidc.0.issuer
+  depends_on      = [aws_eks_node_group.cluster]
+}
+
+resource "aws_iam_role" "role" {
+  name = "AmazonEKSClusterAutoscalerRole"
+  assume_role_policy = jsonencode(
+    {
+    "Version": "2012-10-17",
+    "Statement": [
+      {
+        "Effect": "Allow",
+        "Principal": {
+          "Federated": "${aws_iam_openid_connect_provider.cluster.arn}"
+        },
+        "Action": "sts:AssumeRoleWithWebIdentity",
+        "Condition": {
+          "StringEquals": {
+            "${aws_iam_openid_connect_provider.cluster.url}:sub": "system:serviceaccount:kube-system:cluster-autoscaler"
+          }
+        }
+      }
+    ]
+  }
+  )
+  depends_on = [aws_iam_policy.policy]
+}
+
 resource "aws_iam_role_policy_attachment" "test-attach" {
   role       = aws_iam_role.role.name
   policy_arn = aws_iam_policy.policy.arn
+  depends_on      = [aws_iam_role.role,aws_iam_policy.policy]
 }
